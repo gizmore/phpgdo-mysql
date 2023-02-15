@@ -3,6 +3,7 @@ namespace GDO\DBMS;
 
 use GDO\Core\GDO_Module;
 use GDO\Core\GDO;
+use GDO\DB\Database;
 
 /**
  * MySQLi DBMS module.
@@ -64,7 +65,7 @@ final class Module_DBMS extends GDO_Module
 		return mysqli_query($this->link, $query);
 	}
 	
-	public function dbmsFree(\mysqli $result): void
+	public function dbmsFree(\mysqli_result $result): void
 	{
 		mysqli_free_result($result);
 	}
@@ -207,8 +208,6 @@ final class Module_DBMS extends GDO_Module
 		
 		foreach ($gdo->gdoColumnsCache() as $column)
 		{
-			// 			if ($column instanceof GDT_DBField)
-				// 			{
 			if ($define = $column->gdoColumnDefine())
 			{
 				$columns[] = $define;
@@ -217,13 +216,12 @@ final class Module_DBMS extends GDO_Module
 			{
 				$primary[] = $column->identifier();
 			}
-			// 			}
 		}
 		
 		if (count($primary))
 		{
 			$primary = implode(',', $primary);
-			$columns[] = "PRIMARY KEY ($primary) " . self::PRIMARY_USING;
+			$columns[] = "PRIMARY KEY ($primary) " . Database::PRIMARY_USING;
 		}
 		
 		foreach ($gdo->gdoColumnsCache() as $column)
@@ -240,7 +238,6 @@ final class Module_DBMS extends GDO_Module
 			"(\n$columnsCode\n) ENGINE = {$gdo->gdoEngine()}";
 		
 		return $query;
-		
 	}
 	
 	public function dbmsTruncateTable(string $tableName): void
@@ -256,6 +253,9 @@ final class Module_DBMS extends GDO_Module
 	#################
 	### Migration ###
 	#################
+	/**
+	 * Automigrations are pretty kewl.
+	 */
 	public function dbmsAutoMigrate(GDO $gdo): void
 	{
 		# Remove old temp table
