@@ -100,14 +100,19 @@ final class Module_DBMS extends GDO_Module
 		return mysqli_fetch_row($result);
 	}
 	
-	public function dbmsFetchAll(\mysqli_result $result): ?array
+	public function dbmsFetchAllRows(\mysqli_result $result): ?array
 	{
-		return mysqli_fetch_all($result);
+		return mysqli_fetch_all($result, MYSQLI_NUM);
 	}
 	
 	public function dbmsFetchAssoc(\mysqli_result $result): ?array
 	{
 		return mysqli_fetch_assoc($result);
+	}
+	
+	public function dbmsFetchAllAssoc(\mysqli_result $result): ?array
+	{
+		return mysqli_fetch_all($result, MYSQLI_ASSOC);
 	}
 	
 	public function dbmsNumRows($result): int
@@ -319,11 +324,11 @@ final class Module_DBMS extends GDO_Module
 	
 	public function Core_GDT_Float(GDT_Float $gdt): string
 	{
-		$unsigned = $this->unsigned ? " UNSIGNED" : GDT::EMPTY_STRING;
+		$unsigned = $gdt->unsigned ? " UNSIGNED" : GDT::EMPTY_STRING;
 		return "{$gdt->identifier()} FLOAT{$unsigned}{$this->gdoNullDefine($gdt)}{$this->gdoInitialDefine($gdt)}";
 	}
 	
-	public function GDT_Decimal(GDT_Decimal $gdt): string
+	public function Core_GDT_Decimal(GDT_Decimal $gdt): string
 	{
 		$digits = sprintf("%d,%d", $gdt->digitsBefore + $gdt->digitsAfter, $gdt->digitsAfter);
 		return "{$gdt->identifier()} DECIMAL($digits){$this->gdoNullDefine($gdt)}{$this->gdoInitialDefine($gdt)}";
@@ -412,9 +417,9 @@ final class Module_DBMS extends GDO_Module
 			",FOREIGN KEY ({$gdt->identifier()}) REFERENCES $tableName($on) ON DELETE {$gdt->cascade} ON UPDATE CASCADE";
 	}
 	
-	public function Core_GDO_Index(GDT_Index $gdt)
+	public function Core_GDT_Index(GDT_Index $gdt)
 	{
-		return "{$this->fulltextDefine()} INDEX({$gdt->indexColumns}) {$this->usingDefine($gdt)}";
+		return "{$gdt->fulltextDefine()} INDEX({$gdt->indexColumns}) {$this->usingDefine($gdt)}";
 	}
 	
 	##############
