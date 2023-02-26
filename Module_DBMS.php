@@ -297,6 +297,37 @@ final class Module_DBMS extends GDO_Module
 		throw new GDO_Error('err_gdt_column_define_missing', [$gdt->getName(), get_class($gdt)]);
 	}
 	
+	##############
+	### Compat ###
+	##############
+	public function dbmsEscape(string $var): string
+	{
+		return str_replace(
+			['\\', "'", '"'],
+			['\\\\', '\\\'', '\\"'], $var);
+	}
+	
+	public function dbmsQuote($var): string
+	{
+		return sprintf('"%s"', $this->dbmsEscape($var));
+	}
+	
+	public function dbmsConcat(string ...$fields): string
+	{
+		return sprintf('CONCAT(%s)', implode(', ', $fields));
+	}
+	
+	public function dbmsTimestamp(string $arg): string
+	{
+		return sprintf('UNIX_TIMESTAMP(%s)', $arg);
+	}
+	
+	public function dbmsFromUnixtime(int $time=0): string
+	{
+		$time = $time?:time(); 
+		return "FROM_UNIXTIME({$time})";
+	}
+	
 	###############
 	### Columns ###
 	###############
