@@ -312,6 +312,11 @@ final class Module_DBMS extends GDO_Module
 		return sprintf('"%s"', $this->dbmsEscape($var));
 	}
 	
+	public function dbmsRandom(): string
+	{
+		return 'RAND()';
+	}
+	
 	public function dbmsConcat(string ...$fields): string
 	{
 		return sprintf('CONCAT(%s)', implode(', ', $fields));
