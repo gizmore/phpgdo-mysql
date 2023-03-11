@@ -44,7 +44,7 @@ final class Module_DBMS extends GDO_Module
 {
 	public int $priority = 7;
 	
-	private \mysqli $link;
+	private ?\mysqli $link = null;
 
 	##############
 	### Module ###
@@ -71,7 +71,11 @@ final class Module_DBMS extends GDO_Module
 	
 	public function dbmsClose(): void
 	{
-		mysqli_close($this->link);
+		if ($this->link)
+		{
+			mysqli_close($this->link);
+			$this->link = null;
+		}
 	}
 	
 	public function dbmsForeignKeys(bool $foreignKeysEnabled): void
