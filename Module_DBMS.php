@@ -23,6 +23,7 @@ use GDO\Core\GDT_Decimal;
 use GDO\Core\GDT_Enum;
 use GDO\Core\GDT_Index;
 use GDO\Date\GDT_DateTime;
+use GDO\Core\GDO_DBException;
 
 /**
  * MySQLi DBMS module.
@@ -45,6 +46,12 @@ final class Module_DBMS extends GDO_Module
 	public int $priority = 7;
 	
 	private ?\mysqli $link = null;
+	
+	public function __wakeup(): void
+	{
+		parent::__wakeup();
+		$this->link = null;
+	}
 
 	##############
 	### Module ###
@@ -63,9 +70,12 @@ final class Module_DBMS extends GDO_Module
 	################
 	public function dbmsOpen(string $host, string $user, string $pass, string $database=null, int $port=3306): \mysqli
 	{
-		$this->link = mysqli_connect($host, $user, $pass, $database, $port);
-		$this->dbmsQuery("SET NAMES UTF8");
-		$this->dbmsQuery("SET time_zone = '+00:00'");
+		if (!$this->link)
+		{
+			$this->link = mysqli_connect($host, $user, $pass, $database, $port);
+			$this->dbmsQuery("SET NAMES UTF8");
+			$this->dbmsQuery("SET time_zone = '+00:00'");
+		}
 		return $this->link;
 	}
 	
@@ -91,7 +101,17 @@ final class Module_DBMS extends GDO_Module
 	
 	public function dbmsQuery(string $query, bool $buffered=true)
 	{
-		return mysqli_query($this->link, $query);
+		try
+		{
+			return mysqli_query($this->link, $query);
+		}
+		catch (\Throwable $ex)
+		{
+			throw new GDO_DBException("err_db", [
+				$this->dbmsErrno(),
+				html($this->dbmsError()),
+				html($query)]);
+		}
 	}
 	
 	public function dbmsFree(\mysqli_result $result): void
@@ -149,16 +169,18 @@ final class Module_DBMS extends GDO_Module
 		mysqli_rollback($this->link);
 	}
 	
-	public function dbmsLock(string $lock, int $timeout=30): void
+	public function dbmsLock(string $lock, int $timeout=30): bool
 	{
 		$query = "SELECT GET_LOCK('{$lock}', {$timeout}) as L";
 		$this->dbmsQuery($query, false);
+		return true;
 	}
 	
-	public function dbmsUnlock(string $lock): void
+	public function dbmsUnlock(string $lock): bool
 	{
 		$query = "SELECT RELEASE_LOCK('{$lock}') AS L";
 		$this->dbmsQuery($query, false);
+		return true;
 	}
 	
 	public function dbmsError(): string
@@ -217,7 +239,8 @@ final class Module_DBMS extends GDO_Module
 	
 	public function dbmsDropDB(string $dbName): void
 	{
-		$this->dbmsQry("DROP DATABASE {$dbName}");
+		$this->dbmsOpen(GDO_DB_HOST, GDO_DB_USER, GDO_DB_PASS, null, GDO_DB_PORT);
+		$this->dbmsQry("DROP DATABASE IF EXISTS {$dbName}");
 	}
 	
 	##############
