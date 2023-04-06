@@ -8,7 +8,6 @@ Since phgdo 7.0.2 module DBMS is a required multi-provider-module.
 
 The following DBMS are supported by phpgdo.
 
- - [MySQL/MariaDB](./README.md)
- - [SQLite](https://github.com/gizmore/phpgdo-sqlite) (NEW)
- - [Postgres](https://github.com/gizmore/phpgdo-postgres) (TODO)
- 
+- [MySQL/MariaDB](./README.md)
+- [SQLite](https://github.com/gizmore/phpgdo-sqlite) (NEW)
+- [Postgres](https://github.com/gizmore/phpgdo-postgres) (TODO)
