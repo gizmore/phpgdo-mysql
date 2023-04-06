@@ -381,6 +381,15 @@ final class Module_DBMS extends GDO_Module
 			['\\\\', '\\\'', '\\"'], $var);
 	}
 
+	public function dbmsEscapeSearch(string $var): string
+	{
+		return str_replace(
+			['%', "'", '"', '\\'],
+			['\\%', "\\'", '\\"', '\\\\'],
+			$var);
+	}
+
+
 	##############
 	### Compat ###
 	##############
