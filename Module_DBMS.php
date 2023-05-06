@@ -3,6 +3,7 @@ declare(strict_types=1);
 namespace GDO\DBMS;
 
 use GDO\Core\Application;
+use GDO\Core\Debug;
 use GDO\Core\GDO;
 use GDO\Core\GDO_DBException;
 use GDO\Core\GDO_Module;
@@ -26,6 +27,7 @@ use GDO\Date\GDT_DateTime;
 use GDO\Date\GDT_Time;
 use GDO\Date\GDT_Timestamp;
 use GDO\DB\Database;
+use GDO\TBS\GDO_TBS_ChallengeSolvedCategory;
 use mysqli;
 use mysqli_result;
 
@@ -144,7 +146,7 @@ final class Module_DBMS extends GDO_Module
 	public function dbmsLock(string $lock, int $timeout = 30): bool
 	{
 		$query = "SELECT GET_LOCK('{$lock}', {$timeout}) as L";
-		return $this->dbmsQuery($query, false);
+		return !!$this->dbmsQuery($query, false);
 	}
 
 	/**
@@ -156,7 +158,7 @@ final class Module_DBMS extends GDO_Module
 		{
 			return $buffered ?
 				mysqli_query($this->link, $query) :
-				mysqli_real_query($this->link, $query);
+				mysqli_query($this->link, $query);
 		}
 		catch (\Throwable $ex)
 		{
@@ -182,7 +184,7 @@ final class Module_DBMS extends GDO_Module
 	public function dbmsUnlock(string $lock): bool
 	{
 		$query = "SELECT RELEASE_LOCK('{$lock}') AS L";
-		return $this->dbmsQuery($query, false);
+		return !!$this->dbmsQuery($query, false);
 	}
 
 	/**
@@ -205,7 +207,7 @@ final class Module_DBMS extends GDO_Module
 			}
 
 			# Append to command
-			$command .= $line;
+			$command .= $line . "\n";
 
 			# Finished command
 			if (str_ends_with($line, ';'))
@@ -606,17 +608,19 @@ final class Module_DBMS extends GDO_Module
 		return "{$this->gdoFulltextDefine($gdt)} INDEX({$gdt->indexColumns}) {$this->gdoIndexDefine($gdt)}";
 	}
 
-	/**
-	 * @throws GDO_DBException
-	 */
-	public function dbmsDropTable(string $tableName): void
+	public function dbmsDropTable(string $tableName): bool
 	{
-		$this->dbmsQry("DROP TABLE IF EXISTS {$tableName}");
+		try
+		{
+			return $this->dbmsQry("DROP TABLE IF EXISTS {$tableName}");
+		}
+		catch (GDO_DBException $ex)
+		{
+			Debug::debugException($ex);
+			return false;
+		}
 	}
 
-	/**
-	 * @throws GDO_DBException
-	 */
 	public function dbmsForeignKeys(bool $foreignKeysEnabled): void
 	{
 		$check = (int)$foreignKeysEnabled;
@@ -646,6 +650,8 @@ final class Module_DBMS extends GDO_Module
 	 */
 	public function dbmsAutoMigrate(GDO $gdo): void
 	{
+
+
 		# Remove old temp table
 		$tablename = $gdo->gdoTableName();
 		$temptable = "zzz_temp_{$tablename}";
@@ -689,18 +695,25 @@ final class Module_DBMS extends GDO_Module
 	{
 		$db = GDO_DB_NAME;
 
-		$query = 'SELECT group_concat(COLUMN_NAME) FROM INFORMATION_SCHEMA.COLUMNS ' .
+		# Old column names
+		$query = 'SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS ' .
 			"WHERE TABLE_SCHEMA = '{$db}' AND TABLE_NAME = '{$temptable}'";
 		$result = $this->dbmsQuery($query);
-		$old = mysqli_fetch_array($result)[0];
-		$old = explode(',', $old);
+		$rows = mysqli_fetch_all($result);
+		$old = array_map(function (array $row)
+		{
+			return $row[0];
+		}, $rows);
 
-		$query = 'SELECT group_concat(COLUMN_NAME) FROM INFORMATION_SCHEMA.COLUMNS ' .
+		# New column names
+		$query = 'SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS ' .
 			"WHERE TABLE_SCHEMA = '{$db}' AND TABLE_NAME = '{$gdo->gdoTableName()}'";
 		$result = $this->dbmsQuery($query);
-		$new = mysqli_fetch_array($result)[0];
-		$new = explode(',', $new);
-
+		$rows = mysqli_fetch_all($result);
+		$new = array_map(function (array $row)
+		{
+			return $row[0];
+		}, $rows);
 		return ($old && $new) ? array_intersect($old, $new) : GDT::EMPTY_ARRAY;
 	}
 
