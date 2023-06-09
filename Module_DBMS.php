@@ -6,6 +6,7 @@ use GDO\Core\Application;
 use GDO\Core\Debug;
 use GDO\Core\GDO;
 use GDO\Core\GDO_DBException;
+use GDO\Core\GDO_Exception;
 use GDO\Core\GDO_Module;
 use GDO\Core\GDT;
 use GDO\Core\GDT_AutoInc;
@@ -41,7 +42,7 @@ use mysqli_result;
  * The DBMS *only* has to generate create code for around 18 core types.
  * The rest of the system uses only these core types to generate composites or alikes.
  *
- * The-Auto-Migration-Idea is worth a look!
+ * The-Auto-Migration is worth a look!
  *
  * @version 7.0.3
  * @since 7.0.2
@@ -162,9 +163,9 @@ final class Module_DBMS extends GDO_Module
 		}
 		catch (\Throwable $ex)
 		{
+			Debug::debugException($ex, false);
 			$msg = $this->dbmsError() ?: $ex->getMessage();
-			throw new GDO_DBException('err_db', [
-				$this->dbmsErrno(), html($msg), html($query)]);
+			throw new GDO_DBException($this->dbmsErrno(), $msg, $query, $ex);
 		}
 	}
 
@@ -574,23 +575,23 @@ final class Module_DBMS extends GDO_Module
 	/**
 	 * Take the foreign key primary key definition and use str_replace to convert to foreign key definition.
 	 *
-	 * @throws GDO_DBException
+	 * @throws GDO_Exception
 	 */
 	public function Core_GDT_Object(GDT_Object|GDT_ObjectSelect $gdt): string
 	{
 		if (!($table = $gdt->table))
 		{
-			throw new GDO_DBException('err_gdo_object_no_table', [
+			throw new GDO_Exception('err_gdo_object_no_table', [
 				$gdt->getName(),
-			]);
+			], GDO_Exception::DB_ERROR_CODE);
 		}
 		$tableName = $table->gdoTableIdentifier();
 		if (!($primaryKey = $table->gdoPrimaryKeyColumn()))
 		{
-			throw new GDO_DBException('err_gdo_no_primary_key', [
+			throw new GDO_Exception('err_gdo_no_primary_key', [
 				$tableName,
 				$gdt->getName(),
-			]);
+			], GDO_Exception::DB_ERROR_CODE);
 		}
 		$define = $primaryKey->gdoColumnDefine();
 		$define = str_replace($primaryKey->getName(), $gdt->getName(), $define);
@@ -621,10 +622,18 @@ final class Module_DBMS extends GDO_Module
 		}
 	}
 
-	public function dbmsForeignKeys(bool $foreignKeysEnabled): void
+	public function dbmsForeignKeys(bool $foreignKeysEnabled): bool
 	{
-		$check = (int)$foreignKeysEnabled;
-		$this->dbmsQry("SET foreign_key_checks = {$check}");
+		try
+		{
+			$check = (int)$foreignKeysEnabled;
+			return $this->dbmsQry("SET foreign_key_checks = {$check}");
+		}
+		catch (GDO_DBException $ex)
+		{
+			Debug::debugException($ex);
+			return false;
+		}
 	}
 
 	private function gdoFulltextDefine(GDT_Index $gdt): string
@@ -641,17 +650,13 @@ final class Module_DBMS extends GDO_Module
 	#################
 	### Migration ###
 	#################
-
-
 	/**
 	 * Automigrations are pretty kewl.
 	 *
 	 * @throws GDO_DBException
 	 */
-	public function dbmsAutoMigrate(GDO $gdo): void
+	public function dbmsAutoMigrate(GDO $gdo)
 	{
-
-
 		# Remove old temp table
 		$tablename = $gdo->gdoTableName();
 		$temptable = "zzz_temp_{$tablename}";
