@@ -270,7 +270,7 @@ final class Module_DBMS extends GDO_Module
 		if (!$this->link)
 		{
 			$this->link = mysqli_connect($host, $user, $pass, $database, $port);
-			$this->dbmsQuery('SET NAMES UTF8');
+			mysqli_set_charset($this->link, 'utf8mb4');
 			$this->dbmsQuery("SET time_zone = '+00:00'");
 			if ($database)
 			{
