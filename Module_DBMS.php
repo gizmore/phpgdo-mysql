@@ -19,6 +19,7 @@ use GDO\Core\GDT_Enum;
 use GDO\Core\GDT_Float;
 use GDO\Core\GDT_Index;
 use GDO\Core\GDT_Int;
+use GDO\Core\GDT_JSON;
 use GDO\Core\GDT_Object;
 use GDO\Core\GDT_ObjectSelect;
 use GDO\Core\GDT_String;
@@ -533,6 +534,11 @@ final class Module_DBMS extends GDO_Module
 	{
 		$collate = $this->gdoCollateDefine($gdt, $gdt->caseSensitive);
 		return "TEXT({$gdt->max}) CHARSET {$this->gdoCharsetDefine($gdt)}{$collate}{$this->gdoNullDefine($gdt)}{$this->gdoInitialDefine($gdt)}";
+	}
+
+	public function Core_GDT_JSON(GDT_JSON $gdt): string
+	{
+		return "{$gdt->name} JSON{$this->gdoNullDefine($gdt)}{$this->gdoInitialDefine($gdt)}";
 	}
 
 	public function Core_GDT_CreatedAt(GDT_CreatedAt $gdt): string
