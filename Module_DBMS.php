@@ -164,9 +164,10 @@ final class Module_DBMS extends GDO_Module
 		}
 		catch (\Throwable $ex)
 		{
-			Debug::debugException($ex, false);
 			$msg = $this->dbmsError() ?: $ex->getMessage();
-			throw new GDO_DBException($this->dbmsErrno(), $msg, $query, $ex);
+			$dbException = new GDO_DBException($this->dbmsErrno(), $msg, $query, $ex);
+			Debug::debugException($dbException, false);
+			throw $dbException;
 		}
 	}
 
@@ -387,10 +388,8 @@ final class Module_DBMS extends GDO_Module
 
 	public function dbmsEscapeSearch(string $var): string
 	{
-		return str_replace(
-			['%', "'", '"', '\\'],
-			['\\%', "\\'", '\\"', '\\\\'],
-			$var);
+		$literal = strtr($var, ['\\' => '\\\\', '%' => '\\%', '_' => '\\_']);
+		return $this->dbmsEscape($literal);
 	}
 
 
@@ -458,7 +457,7 @@ final class Module_DBMS extends GDO_Module
 
 	private function gdoInitialDefine(GDT_DBField $gdt): string
 	{
-		return $gdt->initial ? (' DEFAULT ' . GDO::quoteS($gdt->initial)) : GDT::EMPTY_STRING;
+		return $gdt->initial !== null ? (' DEFAULT ' . GDO::quoteS($gdt->initial)) : GDT::EMPTY_STRING;
 	}
 
 	public function Core_GDT_Enum(GDT_Enum $gdt): string
