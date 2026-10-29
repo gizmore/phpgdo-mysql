@@ -165,9 +165,7 @@ final class Module_DBMS extends GDO_Module
 		catch (\Throwable $ex)
 		{
 			$msg = $this->dbmsError() ?: $ex->getMessage();
-			$dbException = new GDO_DBException($this->dbmsErrno(), $msg, $query, $ex);
-			Debug::debugException($dbException, false);
-			throw $dbException;
+			throw new GDO_DBException($this->dbmsErrno(), $msg, $query, $ex);
 		}
 	}
 
